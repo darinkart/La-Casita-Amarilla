@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Casita Amarilla - Gateway</title>
+<style>
+  /* 
+    1. Background Layout
+    Ensure background fully covers the absolute entire screen/viewport without borders. 
+  */
+  body, html {
+    margin: 0; padding: 0;
+    width: 100vw; height: 100vh;
+    min-height: 100vh;
+    background-color: #ffd202; /* Exact vibrant yellow to match the Base_WithBlue theme */
+    display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
+    cursor: none; /* 3. Hide default system mouse cursor */
+  }
+
+  /* 
+    3. Custom Pink Cursor
+    Tracks mouse. Pointer-events: none ensures it doesn't block interactions.
+  */
+  #custom-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 20px; height: 20px;
+    background-color: #ff02f6;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
+    /* Move layout out of the main thread and into the GPU */
+    will-change: transform;
+    transform: translate(-50%, -50%); 
+  }
+
+  /* Maintaining perfect 4:3 composition frame mathematically bounded to window limits */
+  .aspect-container {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    width: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
+    cursor: none;
+  }
+  
+  @media (min-aspect-ratio: 4/3) {
+    .aspect-container { width: auto; height: 100vh; }
+  }
+  @media (max-aspect-ratio: 4/3) {
+    .aspect-container { width: 100vw; height: auto; }
+  }
+
+  /* Layers: Ensure pixel perfect alignment across all images */
+  .layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  /* 
+    Obscure burned-in text. 
+    By clipping the base image at 85% Y-axis, it hides any original text from the provided image.
+  */
+  .base-image {
+    clip-path: polygon(0 0, 100% 0, 100% 86%, 0 86%);
+  }
+
+  /* INVISIBLE HITBOXES
+     These pure positioning boxes replace all previous visual clip-mask overlays.
+     They strictly capture hover events geometrically to toggle unclipped overlay opacity.
+  */
+  .hitbox {
+    position: absolute;
+    cursor: none;
+    z-index: 20;
+    border-radius: 50%; /* Trims the invisible square corners so they don't overlap nearby faces */
+  }
+  
+  .unclipped-overlay {
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.05s linear;
+    will-change: opacity;
+  }
+
+  /* 
+    2. Text Animation 
+    Slide up strictly 1 second after page loads.
+  */
+  #text-container {
+    position: absolute;
+    bottom: 2vh; left: 0;
+    width: 100vw;
+    height: 15vh; /* Covers the bottom securely */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Hide text before slide up */
+    z-index: 50;
+    pointer-events: none; /* so text doesn't steal hover/clicks */
+  }
+
+  #enter-text {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80%;
+    max-width: 90%;
+    
+    transform: translateY(150px);
+    opacity: 0;
+    
+    /* Triggers exactly 1 sec after loaded */
+    animation: slideUpLock 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 1s forwards;
+  }
+
+  .text-slice {
+    height: 70%; /* Scaled down a total of 30% from its original size */
+    object-fit: contain;
+  }
+  
+  #me-text {
+    pointer-events: auto; /* Safely activates hit testing natively for just this slice */
+    cursor: none;
+  }
+
+  @keyframes slideUpLock {
+    0% { transform: translateY(150px); opacity: 0; }
+    100% { transform: translateY(0px); opacity: 1; }
+  }
+
+  /* Minimalistic horizontal swaying effect */
+  @keyframes shakeEffect {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    75% { transform: translateX(3px); }
+  }
+
+  .shake-active {
+    animation: shakeEffect 0.3s ease-in-out infinite !important;
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- Custom Pink Cursor Element -->
+  <div id="custom-cursor"></div>
+
+  <!-- Animated Text Component -->
+  <div id="text-container">
+    <div id="enter-text">
+      <img src="Click.png" class="text-slice" alt="CLICK ">
+      <img src="ME.png" id="me-text" class="text-slice" alt="ME">
+      <img src="To Enter.png" class="text-slice" alt=" TO ENTER">
+    </div>
+  </div>
+
+  <div class="aspect-container">
+    <!-- BASE LAYER: Neutral blue faces maintained permanently in the DOM -->
+    <img src="Base_WithBlue.png" class="layer base-image" id="primary-base-img" alt="Base visual">
+
+    <!-- FAST PRE-LOADED OVERLAYS: Totally unclipped images driven purely by opacity toggles -->
+    <!-- This forcefully caches the large images in RAM to completely eradicate the mouse decode lag -->
+    <img src="Top.png" id="img-top" class="layer unclipped-overlay" alt="Top Overlay">
+    <img src="Top_Right.png" id="img-tr" class="layer unclipped-overlay" alt="TR Overlay">
+    <img src="Bottom_Right.png" id="img-br" class="layer unclipped-overlay" alt="BR Overlay">
+    <img src="Bottom.png" id="img-bot" class="layer unclipped-overlay" alt="Bot Overlay">
+    <img src="Bottom_Left.png" id="img-bl" class="layer unclipped-overlay" alt="BL Overlay">
+    <img src="Top_Left.png" id="img-tl" class="layer unclipped-overlay" alt="TL Overlay">
+    <img src="Base_WithSmile.png" id="img-center" class="layer unclipped-overlay" alt="Center Overlay">
+
+    <!-- INVISIBLE INTERACTION HITBOXES -->
+    <!-- Expanded by 4% to ensure zones like Top_Right are consistently caught by the cursor -->
+    <div class="hitbox" id="hit-top" style="top: 6%; left: 40%; width: 20%; height: 22%;"></div>
+    <div class="hitbox" id="hit-tr"  style="top: 15%; left: 58%; width: 28%; height: 30%; z-index: 40;"></div>
+    <div class="hitbox" id="hit-br"  style="top: 47%; left: 53%; width: 20%; height: 22%;"></div>
+    <div class="hitbox" id="hit-bot" style="top: 62%; left: 40%; width: 20%; height: 22%;"></div>
+    <div class="hitbox" id="hit-bl"  style="top: 47%; left: 27%; width: 20%; height: 22%;"></div>
+    <div class="hitbox" id="hit-tl"  style="top: 21%; left: 25%; width: 20%; height: 22%;"></div>
+
+    <!-- CENTER CLICKBOX ROUTING -->
+    <a href="index.html" class="hitbox" id="center-trigger" style="top: 35%; left: 40%; width: 20%; height: 22%;"></a>
+  </div>
+
+  <script>
+    /* -------------------------------------------
+       1. Custom Pink Cursor Logic
+    ------------------------------------------- */
+    const cursor = document.getElementById('custom-cursor');
+    document.addEventListener('mousemove', (e) => {
+      // Bypasses layout thrashing utilizing discrete transform GPU manipulation
+      cursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
+    });
+
+    /* -------------------------------------------
+       2. Slide Animation Web Audio API "Ping" Trigger
+    ------------------------------------------- */
+    const textElement = document.getElementById('enter-text');
+    
+    textElement.addEventListener('animationend', () => {
+      // Trigger the safe 2-second shake effect strictly on the "ME" sub-image
+      const meElement = document.getElementById('me-text');
+      if (meElement) {
+        meElement.classList.add('shake-active');
+        setTimeout(() => {
+          meElement.classList.remove('shake-active');
+        }, 1500);
+      }
+
+      // Attempt to play Web Audio ping
+      // Note: Browsers block AudioContext initialization without prior user interaction.
+      // But we strictly trigger exactly when the animation ends per constraints.
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        // Clean sine wave 800-1000Hz (Using ~900Hz)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+        
+        // Quick fade-out over 0.5 sec
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime); 
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+      } catch (err) {
+        console.warn("Audio Context Ping blocked by autoplay policy. Please click anywhere on page to enable Audio Context privileges.");
+      }
+    });
+
+    /* -------------------------------------------
+       3. Dynamic Face Swapper (All Hover Features without Clipping)
+    ------------------------------------------- */
+    // Mapped hitbox bindings associating to preloaded .unclipped-overlay DOM targets
+    const hoverSwaps = [
+      { trigger: 'hit-top', target: 'img-top' },
+      { trigger: 'hit-tr', target: 'img-tr' },
+      { trigger: 'hit-br', target: 'img-br' },
+      { trigger: 'hit-bot', target: 'img-bot' },
+      { trigger: 'hit-bl', target: 'img-bl' },
+      { trigger: 'hit-tl', target: 'img-tl' },
+      { trigger: 'center-trigger', target: 'img-center' }
+    ];
+
+    hoverSwaps.forEach(swap => {
+      const box = document.getElementById(swap.trigger);
+      const imgTarget = document.getElementById(swap.target);
+      if (box && imgTarget) {
+        box.addEventListener('mouseenter', () => { imgTarget.style.opacity = '1'; });
+        box.addEventListener('mouseleave', () => { imgTarget.style.opacity = '0'; });
+      }
+    });
+
+    // Central Face Explicit Routing Click Override
+    const centerTrigger = document.getElementById('center-trigger');
+    centerTrigger.addEventListener('click', (e) => {
+      e.preventDefault(); 
+      document.getElementById('img-center').style.opacity = '1'; 
+      setTimeout(() => { window.location.href = 'index.html'; }, 50);
+    });
+
+    /* -------------------------------------------
+       4. ME Image Hover Interaction
+    ------------------------------------------- */
+    const meImageHover = document.getElementById('me-text');
+    if (meImageHover) {
+      meImageHover.addEventListener('mouseenter', () => {
+        meImageHover.src = 'NotHere.png';
+      });
+      meImageHover.addEventListener('mouseleave', () => {
+        meImageHover.src = 'ME.png';
+      });
+    }
+
+  </script>
+</body>
+</html>

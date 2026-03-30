@@ -175,7 +175,7 @@
     <img src="Bottom.png" id="img-bot" class="layer unclipped-overlay" alt="Bot Overlay">
     <img src="Bottom_Left.png" id="img-bl" class="layer unclipped-overlay" alt="BL Overlay">
     <img src="Top_Left.png" id="img-tl" class="layer unclipped-overlay" alt="TL Overlay">
-   <img src="Base_WithSmile.png" class="layer unclipped-overlay" alt="Center Overlay">
+   <img src="Base_WithSmile.png" id="img-center" class="layer unclipped-overlay" alt="Center Overlay">
 </a>
     <!-- INVISIBLE INTERACTION HITBOXES -->
     <!-- Expanded by 4% to ensure zones like Top_Right are consistently caught by the cursor -->
@@ -269,7 +269,7 @@
     centerTrigger.addEventListener('click', (e) => {
       e.preventDefault(); 
       document.getElementById('img-center').style.opacity = '1'; 
-      setTimeout(() => { window.location.href = 'index.html'; }, 50);
+      setTimeout(() => { window.location.href = 'home.html'; }, 50);
     });
 
     /* -------------------------------------------

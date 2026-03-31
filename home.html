@@ -366,7 +366,7 @@
       color: #ff03f0;
     }
 
-    /* Interactive Animations */
+    /* Interactive Animations - SPED UP 50% */
     @keyframes slideStagger {
       0% {
         opacity: 0;
@@ -381,7 +381,7 @@
 
     .stagger-option {
       opacity: 0;
-      animation: slideStagger 0.4s forwards ease-out;
+      animation: slideStagger 0.2s forwards ease-out; /* Was 0.4s */
     }
 
     /* Fixed Top-Right Profile Header */
@@ -435,7 +435,7 @@
 
   <div class="profile-badge">
     <div class="profile-portrait">
-      <img src="AIBOT_FRONT.png" alt="Darinka Portrait">
+      <img src="CHATAI.png" alt="Darinka Portrait">
     </div>
     <div class="profile-label">AI Assistant: Darinka</div>
   </div>
@@ -465,6 +465,10 @@
   </div>
 
   <script>
+    // Audio elements mapped
+    const hoverSound = new Audio('clown.wav');
+    const moveSound = new Audio('game.wav');
+
     // Story Data Definition
     const story = {
       start: {
@@ -610,14 +614,39 @@
       return 'AIBOT.png'; // Generic Fallback
     }
 
+    // Grid coordinates tracking for distance measurement
+    window.charCurrentGridX = 15; // default starting approx 
+    window.charCurrentGridY = 15;
+
     for (let i = 0; i < totalTiles; i++) {
       const tile = document.createElement('div');
       tile.className = 'tile';
+
+      // Assign grid coordinate logic to physical tiles for mathematical distance mapping
+      const gridX = i % 30;
+      const gridY = Math.floor(i / 30);
+      tile.dataset.x = gridX;
+      tile.dataset.y = gridY;
 
       // Habbo Movement Logic: Translates clicked tile into screen coordinates and maps character natively
       tile.addEventListener('click', (e) => {
         // [NEW] Stop animation when walking
         stopMouthAnimation();
+
+        // Calculate Tile Distance using Chebyshev format
+        let clickedX = parseInt(tile.dataset.x);
+        let clickedY = parseInt(tile.dataset.y);
+        let tileDistance = Math.max(Math.abs(clickedX - window.charCurrentGridX), Math.abs(clickedY - window.charCurrentGridY));
+        
+        // If distance is > 2 play the movement sound requirement
+        if (tileDistance > 2) {
+          moveSound.currentTime = 0;
+          moveSound.play().catch(err => console.log('Audio error:', err));
+        }
+
+        // Update Tracker
+        window.charCurrentGridX = clickedX;
+        window.charCurrentGridY = clickedY;
 
         // Gamify trace - persistent randomized pastel marks
         const pastels = [
@@ -762,15 +791,25 @@
 
       // Display branch options if available
       if (node.options && node.options.length > 0) {
-        let appearanceDelay = (currentNode === 'start') ? 1000 : 0;
+        // [MODIFIED] Cut appearance delay by 50%
+        let appearanceDelay = (currentNode === 'start') ? 500 : 0; 
 
         setTimeout(() => {
           optionsMenuEl.innerHTML = '';
           node.options.forEach((opt, idx) => {
             const btn = document.createElement('button');
             btn.className = 'option-btn stagger-option';
-            btn.style.animationDelay = `${idx * 0.15}s`;
+            
+            // [MODIFIED] Cut stagger delay by 50%
+            btn.style.animationDelay = `${idx * 0.075}s`; 
             btn.innerText = opt.text;
+            
+            // [NEW] Hover sound logic linked directly to option boxes
+            btn.onmouseenter = () => {
+                hoverSound.currentTime = 0;
+                hoverSound.play().catch(err => console.log('Hover audio failed:', err));
+            };
+
             btn.onclick = (e) => {
               e.stopPropagation();
               startNode(opt.next);

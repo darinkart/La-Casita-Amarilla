@@ -192,6 +192,13 @@
 
   <script>
     /* -------------------------------------------
+       0. Preload Audio Files
+    ------------------------------------------- */
+    const soundPoing = new Audio('poing.wav');
+    const soundWrong = new Audio('wrong.wav');
+    const soundSpark = new Audio('spark.wav');
+
+    /* -------------------------------------------
        1. Custom Pink Cursor Logic
     ------------------------------------------- */
     const cursor = document.getElementById('custom-cursor');
@@ -216,18 +223,14 @@
       }
 
       // Attempt to play Web Audio ping
-      // Note: Browsers block AudioContext initialization without prior user interaction.
-      // But we strictly trigger exactly when the animation ends per constraints.
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         
-        // Clean sine wave 800-1000Hz (Using ~900Hz)
         osc.type = 'sine';
         osc.frequency.setValueAtTime(900, audioCtx.currentTime);
         
-        // Quick fade-out over 0.5 sec
         gain.gain.setValueAtTime(0.5, audioCtx.currentTime); 
         gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
         
@@ -242,43 +245,66 @@
     });
 
     /* -------------------------------------------
-       3. Dynamic Face Swapper (All Hover Features without Clipping)
+       3. Dynamic Face Swapper & Audio Triggers
     ------------------------------------------- */
-    // Mapped hitbox bindings associating to preloaded .unclipped-overlay DOM targets
+    // Mapped hitbox bindings for the BLUE faces only
     const hoverSwaps = [
       { trigger: 'hit-top', target: 'img-top' },
       { trigger: 'hit-tr', target: 'img-tr' },
       { trigger: 'hit-br', target: 'img-br' },
       { trigger: 'hit-bot', target: 'img-bot' },
       { trigger: 'hit-bl', target: 'img-bl' },
-      { trigger: 'hit-tl', target: 'img-tl' },
-      { trigger: 'center-trigger', target: 'img-center' }
+      { trigger: 'hit-tl', target: 'img-tl' }
     ];
 
+    // 3a. Blue Faces Hover (Triggers poing.wav)
     hoverSwaps.forEach(swap => {
       const box = document.getElementById(swap.trigger);
       const imgTarget = document.getElementById(swap.target);
       if (box && imgTarget) {
-        box.addEventListener('mouseenter', () => { imgTarget.style.opacity = '1'; });
+        box.addEventListener('mouseenter', () => { 
+          imgTarget.style.opacity = '1'; 
+          
+          // Clone node allows rapid overlapping sounds without cutting off
+          let playPoing = soundPoing.cloneNode();
+          playPoing.play().catch(e => console.warn("Browser blocked audio prior to click interaction"));
+        });
         box.addEventListener('mouseleave', () => { imgTarget.style.opacity = '0'; });
       }
     });
 
-    // Central Face Explicit Routing Click Override
+    // 3b. Center Smile Face Hover & Click (Triggers spark.wav)
     const centerTrigger = document.getElementById('center-trigger');
-    centerTrigger.addEventListener('click', (e) => {
-      e.preventDefault(); 
-      document.getElementById('img-center').style.opacity = '1'; 
-      setTimeout(() => { window.location.href = 'home.html'; }, 50);
-    });
+    const centerImg = document.getElementById('img-center');
+    
+    if (centerTrigger && centerImg) {
+      centerTrigger.addEventListener('mouseenter', () => {
+        centerImg.style.opacity = '1';
+        
+        let playSpark = soundSpark.cloneNode();
+        playSpark.play().catch(e => console.warn("Browser blocked audio prior to click interaction"));
+      });
+      centerTrigger.addEventListener('mouseleave', () => {
+        centerImg.style.opacity = '0';
+      });
+
+      centerTrigger.addEventListener('click', (e) => {
+        e.preventDefault(); 
+        centerImg.style.opacity = '1'; 
+        setTimeout(() => { window.location.href = 'home.html'; }, 50);
+      });
+    }
 
     /* -------------------------------------------
-       4. ME Image Hover Interaction
+       4. ME Image Hover Interaction (Triggers wrong.wav)
     ------------------------------------------- */
     const meImageHover = document.getElementById('me-text');
     if (meImageHover) {
       meImageHover.addEventListener('mouseenter', () => {
         meImageHover.src = 'NotHere.png';
+        
+        let playWrong = soundWrong.cloneNode();
+        playWrong.play().catch(e => console.warn("Browser blocked audio prior to click interaction"));
       });
       meImageHover.addEventListener('mouseleave', () => {
         meImageHover.src = 'ME.png';

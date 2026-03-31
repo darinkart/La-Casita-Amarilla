@@ -324,22 +324,8 @@
   </div>
 
   <script>
-    /**
-     * FELLOWSHIP NOTE: API Key is hardcoded for the purpose of this Digital Artifact prototype. 
-     * In a production environment, this would be handled via a secure backend .env file.
-     */
-    const GEMINI_API_KEY = "gen-lang-client-0532569908"; 
-
+    // Audio elements
     const hoverSound = new Audio('clown.wav');
-
-    // Local Dictionary for instant responses to basics
-    const localDictionary = {
-      "hello": "In Quechua, we say <b>Allianchu</b>! It literally means 'Are you well?'",
-      "hi": "<b>Allianchu</b>! Ready to learn some more?",
-      "bye": "We say <b>Tupananchiskama</b>, which means 'until we meet again.'",
-      "thank you": "<b>Sulpayki</b>!",
-      "yellow": "That's my favorite! It's <b>Q'illu</b>."
-    };
 
     const story = {
       start: {
@@ -357,7 +343,7 @@
       q2: { text: "Quechua is an Indigenous language from South America. I learned it so I could speak with my great grandparents.", emotion: "Neutral", options: [{ text: "Can I ask you more Quechua questions?", next: "q3" }, { text: "Go Back", next: "start" }] },
       q3: { text: "Not today, sorry. Did you take a look at my Quechua dictionary of colors instead?", emotion: "Sad", next: "q5" },
       q5: { text: "Just kidding! Ask me to translate anything… Don't be too harsh, I'm still Intermediate III.", emotion: "Wink", inputPrompt: true, targetNode: "q_translate_loading", options: [{ text: "Go Back", next: "start" }] },
-      q_translate_loading: { text: "Hmm let me think...", emotion: "Neutral" },
+      q_translate_loading: { text: "Hmm...", emotion: "Neutral" },
       q_translate_result: { text: "", emotion: "Happy", options: [{ text: "Translate another", next: "q5" }, { text: "Go Back", next: "start" }] },
       w1: { text: "Yay! Love this one. I'm a creative who builds. I’m a painter, filmmaker, photographer, design-forward developer and I’m an actress!", emotion: "Happy", next: "w1_b" },
       w1_b: { text: "Resume: I’m a multidisciplinary artist… and I love pesto spaghetti.", emotion: "Happy", next: "w2" },
@@ -443,11 +429,15 @@
       return 'AIBOT.png';
     }
 
+    window.charCurrentGridX = 15;
+    window.charCurrentGridY = 15;
+
     for (let i = 0; i < 900; i++) {
       const tile = document.createElement('div');
       tile.className = 'tile';
       tile.dataset.x = i % 30;
       tile.dataset.y = Math.floor(i / 30);
+
       tile.addEventListener('click', () => {
         stopMouthAnimation();
         const charEl = document.getElementById('sprite-char');
@@ -455,10 +445,14 @@
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         const charRect = charEl.getBoundingClientRect();
+        
         avatarImg.src = getDirectionalImage(centerY - charRect.bottom, centerX - (charRect.left + charRect.width / 2));
         currentClosedImage = avatarImg.src.split('/').pop();
+
         charEl.style.left = `${centerX}px`;
         charEl.style.top = `${centerY}px`;
+        window.charCurrentGridX = parseInt(tile.dataset.x);
+        window.charCurrentGridY = parseInt(tile.dataset.y);
       });
       gridWrapper.appendChild(tile);
     }
@@ -554,50 +548,24 @@
       if (e.key === 'Enter' && !userSubmitBtn.disabled) userSubmitBtn.click();
     });
 
-    // --- GEMINI AI BRAIN CALL ---
-    userSubmitBtn.addEventListener('click', async () => {
+    userSubmitBtn.addEventListener('click', () => {
       const inputText = userInputField.value.trim();
-      if (!inputText) return;
-      userInputField.value = "";
-
-      // Quick local check for speed
-      const lowerInput = inputText.toLowerCase();
-      let localMatch = null;
-      for (let key in localDictionary) {
-        if (lowerInput.includes(key)) { localMatch = localDictionary[key]; break; }
-      }
-
-      if (localMatch) {
-        story['q_translate_result'].text = localMatch;
-        startNode('q_translate_result');
-        return;
-      }
-
-      startNode('q_translate_loading');
-
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      if (inputText && currentNode === 'q5') {
+        startNode('q_translate_loading');
+        fetch('https://darinka-brain.onrender.com/api/translate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Context: You are Darinka, a witty, creative multidisciplinary artist from Peru who loves Quechua and pesto spaghetti. Keep answers under 40 words. If the user asks for a translation, explain it playfully. User says: "${inputText}"`
-              }]
-            }]
-          })
+          body: JSON.stringify({ phrase: inputText })
+        })
+        .then(res => res.json())
+        .then(data => {
+          story['q_translate_result'].text = data.translation;
+          startNode('q_translate_result');
+        })
+        .catch(() => {
+          story['q_translate_result'].text = "Zzz... Give me a second to wake up my brain.";
+          startNode('q_translate_result');
         });
-
-        const data = await response.json();
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-          story['q_translate_result'].text = data.candidates[0].content.parts[0].text;
-        } else {
-          story['q_translate_result'].text = "My creative circuits are tangled! Try that one again.";
-        }
-        startNode('q_translate_result');
-      } catch (error) {
-        story['q_translate_result'].text = "Oops! My Andean spirit connection is dropping. Check the console for errors!";
-        startNode('q_translate_result');
       }
     });
 

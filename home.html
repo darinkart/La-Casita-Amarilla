@@ -105,8 +105,6 @@
       box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3);
     }
 
-
-
     /* Center Character Element */
     .character {
       position: absolute;
@@ -435,7 +433,6 @@
 
 <body>
 
-  <!-- Top Right AI Header Profile -->
   <div class="profile-badge">
     <div class="profile-portrait">
       <img src="AIBOT_FRONT.png" alt="Darinka Portrait">
@@ -443,31 +440,22 @@
     <div class="profile-label">AI Assistant: Darinka</div>
   </div>
 
-  <!-- Habbo-Style Isometric Grid -->
   <div class="grid-wrapper" id="grid-wrapper"></div>
 
-  <!-- Custom Pink Cursor -->
   <div id="custom-cursor"></div>
 
-
-
-  <!-- Isometric Center Sprite -->
   <div class="character" id="sprite-char" style="width: auto; height: 35vh; max-height: 400px;">
-    <!-- Replaced procedural center sprite with custom designated AIBOT.png graphic per user request -->
     <img src="AIBOT.PNG" id="avatar-img" alt="AI Agent Kusimayu"
       style="height: 100%; object-fit: contain; filter: drop-shadow(0px 8px 12px rgba(60, 75, 90, 0.2)); border-radius: 8px;">
   </div>
 
-  <!-- Options View -->
   <div class="options-menu" id="options-menu"></div>
 
-  <!-- Dialogue Box Bottom View -->
   <div class="dialogue-wrapper">
     <div class="dialogue-box" id="dialogue-box">
 
       <div class="dialogue-text" id="dialogue-text"></div>
 
-      <!-- Interactive Elements -->
       <div class="input-container" id="input-container">
         <input type="text" id="user-input" class="user-input" placeholder="Type your phrase..." autocomplete="off" />
         <button id="user-submit" class="submit-btn" disabled>Ask Darinka</button>
@@ -547,6 +535,65 @@
     const avatarImg = document.getElementById('avatar-img');
     const totalTiles = 30 * 30; // 900 physical tiles
 
+    // -------------------------------------------------------------------------
+    // [NEW] MOUTH ANIMATION VARIABLES & LOGIC
+    // -------------------------------------------------------------------------
+    const mouthMap = {
+      'closed': {},
+      'open': {}
+    };
+
+    mouthMap.closed['AIBOT_FRONT.png'] = 'AIBOT_FRONT_OPEN.PNG'; // straight on front
+    mouthMap.closed['AIBOT.PNG'] = 'AIBOT_OPEN.PNG'; // SOUTH EAST DIAGONAL
+    mouthMap.closed['AIBOT_DIAGONALLEFT.png'] = 'AIBOT_DIAGONALLEFT_OPEN.PNG'; // SOUTH WEST DIAGONAL
+    mouthMap.closed['AIBOT_RIGHTPROFILE.png'] = 'AIBOT_RIGHTPROFILE_OPEN.PNG'; // right profile
+    mouthMap.closed['AIBOT_LEFTPROFILE.png'] = 'AIBOT_LEFTPROFILE_OPEN.PNG'; // LEFT PROFILE
+
+    const faceForwardList = [
+      'AIBOT_FRONT.png',
+      'AIBOT.PNG',
+      'AIBOT_DIAGONALLEFT.png',
+      'AIBOT_RIGHTPROFILE.png',
+      'AIBOT_LEFTPROFILE.png'
+    ];
+
+    let mouthState = 'closed';
+    let currentClosedImage = 'AIBOT.PNG';
+    let talkingTimer;
+
+    function canAnimateMouth() {
+      const currentSrc = avatarImg.src.split('/').pop();
+      return faceForwardList.includes(currentSrc);
+    }
+
+    function cycleMouthFrame() {
+      const currentSrc = avatarImg.src.split('/').pop();
+      let openSrc = mouthMap.closed[currentClosedImage];
+
+      if (mouthState === 'closed') {
+        avatarImg.src = openSrc;
+        mouthState = 'open';
+      } else {
+        avatarImg.src = currentClosedImage;
+        mouthState = 'closed';
+      }
+    }
+
+    function startMouthAnimation() {
+      currentClosedImage = avatarImg.src.split('/').pop();
+      mouthState = 'closed';
+      if (!canAnimateMouth()) return; 
+      clearInterval(talkingTimer);
+      talkingTimer = setInterval(cycleMouthFrame, 150);
+    }
+
+    function stopMouthAnimation() {
+      clearInterval(talkingTimer);
+      avatarImg.src = currentClosedImage;
+      mouthState = 'closed';
+    }
+    // -------------------------------------------------------------------------
+
     // Core engine logic determining 8-way Habbo compass based on screen angle mapped against mathematical projection array
     function getDirectionalImage(dy, dx) {
       let angle = Math.atan2(dy, dx) * 180 / Math.PI;
@@ -569,6 +616,9 @@
 
       // Habbo Movement Logic: Translates clicked tile into screen coordinates and maps character natively
       tile.addEventListener('click', (e) => {
+        // [NEW] Stop animation when walking
+        stopMouthAnimation();
+
         // Gamify trace - persistent randomized pastel marks
         const pastels = [
           'rgba(255, 179, 186, 0.6)', // Baby Pink
@@ -593,6 +643,9 @@
         const currentX = charRect.left + charRect.width / 2;
         const currentY = charRect.bottom;
         avatarImg.src = getDirectionalImage(centerY - currentY, centerX - currentX);
+        
+        // [NEW] Ensure we track the new perspective after she rotates
+        currentClosedImage = avatarImg.src.split('/').pop(); 
 
         // Command the character to smoothly walk
         charEl.style.left = `${centerX}px`;
@@ -657,6 +710,9 @@
       clearInterval(typeInterval);
 
       typeInterval = setInterval(() => {
+        // [NEW] Start animation loop at the very first typed character
+        if (i === 1) startMouthAnimation();
+
         if (i >= htmlString.length) {
           clearInterval(typeInterval);
           finishTyping();
@@ -692,6 +748,9 @@
     function finishTyping() {
       isTyping = false;
       const node = story[currentNode];
+
+      // [NEW] Stop mouth animation when the text finishes naturally
+      stopMouthAnimation(); 
 
       // If node asks for user text input
       if (node.inputPrompt) {
@@ -804,6 +863,9 @@
     // Initialize Game
     // Small delay to allow audio context engagement rules if the user already clicked
     window.addEventListener('load', () => {
+      // [NEW] Immediately store initial image state
+      currentClosedImage = avatarImg.src.split('/').pop();
+
       document.body.addEventListener('click', () => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
       }, { once: true });

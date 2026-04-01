@@ -872,16 +872,14 @@
       })
       .then(res => res.json())
       .then(data => {
+        // We set the text to the translation received from Render
         story['q_translate_result'].text = data.translation;
-        
-        // Simple logic to change emotion based on response length or content
-        story['q_translate_result'].emotion = data.translation.length > 100 ? "Surprised" : "Happy";
-        
         startNode('q_translate_result'); 
       })
       .catch(err => {
         console.error("Brain offline:", err);
-        story['q_translate_result'].text = "I'm having trouble connecting to my brain… I’m so sorry! I’m off to refuel—back shortly!”;
+        // FIXED QUOTES BELOW:
+        story['q_translate_result'].text = "I'm having trouble connecting to my brain... I'm so sorry! I'm off to refuel—back shortly!";
         startNode('q_translate_result');
       });
       return;

@@ -467,6 +467,7 @@
   <script>
     // Audio elements mapped
     const hoverSound = new Audio('clown.wav');
+    const moveSound = new Audio('game.wav');
 
     // Story Data Definition
     const story = {
@@ -866,16 +867,13 @@
           startNode('q_translate_loading'); // Transition into native 'thinking' state
           userInputField.value = '';
 
-          // Proxy connection directly into Darinka's physical LLM backend on Render!
-          fetch('https://darinka-brain.onrender.com/api/translate', {
+          // Proxy connection directly into Darinka's physical LLM backend!
+          fetch('http://localhost:3000/api/translate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phrase: inputText })
           })
-            .then(res => {
-                if (!res.ok) throw new Error("Brain is waking up...");
-                return res.json();
-            })
+            .then(res => res.json())
             .then(data => {
               story['q_translate_result'].text = data.translation;
               // Inherently enforce emotional feedback maps on explicit failures
@@ -888,7 +886,7 @@
             })
             .catch(err => {
               console.error("Translation Brain offline:", err);
-              story['q_translate_result'].text = "Zzz... Give me a second to wake up my brain. Try asking again in about 30 seconds!";
+              story['q_translate_result'].text = "Wow, you expect me to know that? Remember, I'm only at Intermediate III.";
               story['q_translate_result'].emotion = "Surprised";
               startNode('q_translate_result');
             });
